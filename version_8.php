@@ -2,7 +2,7 @@
 session_start();
 
 // Initialisation des variables pour sécurité htmlspecialchars
-$entity = $docType = $docNumber = $docExp = $familyName = $firstName = $birthDate = $address = $locality = $country = $email = $phone = $company = $companyvat = $interest = $referer = '';
+$entity = $docType = $docNumber = $docExp = $familyName = $firstName = $birthDate = $address = $locality = $country = $email = $phone = $company = $companyvat = $interest = $referer = $iban = $swift = $bankName = '';
 
 //honeypot détection de bots
 if (!empty($_POST['fake_field'])) {
@@ -48,17 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     $phone = trim($_POST['phone'] ?? null);
     $company = strtoupper(trim($_POST['company'] ?? null));
     $companyvat = strtoupper(trim($_POST['companyvat'] ?? null));
+    $iban = strtoupper(trim($_POST['iban'] ?? ''));
+    $swift = strtoupper(trim($_POST['swift'] ?? ''));
+    $bankName = ucfirst(trim($_POST['bankName'] ?? ''));
     $interest = $_POST['interest'];
     $referer = $_POST['referer'];
     $regdate = date('Y-m-d');
 
     // Insertion dans la base de données
     $stmt = $pdo->prepare("
-        INSERT INTO clients 
-        (entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, interest, referer, regdate) 
-        VALUES 
-        (:entity, :docType, :docNumber, :docExp, :fullName, :familyName, :firstName, :birthDate, :address, :locality, :country, :email, :phone, :company, :companyvat, :interest, :referer, :regdate)
-    ");
+    INSERT INTO clients 
+    (entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, interest, referer, regdate, iban, swift, bankName) 
+    VALUES 
+    (:entity, :docType, :docNumber, :docExp, :fullName, :familyName, :firstName, :birthDate, :address, :locality, :country, :email, :phone, :company, :companyvat, :interest, :referer, :regdate, :iban, :swift, :bankName)
+");
     $stmt->execute([
         ':entity' => $entity,
         ':docType' => $docType,
@@ -78,6 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
         ':interest' => $interest,
         ':referer' => $referer,
         ':regdate' => $regdate,
+        ':iban' => $iban,
+        ':swift' => $swift,
+        ':bankName' => $bankName,
     ]);
 
     $processed = true;
@@ -181,6 +187,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
                     <input type="text" id="phone" name="phone" value="<?= htmlspecialchars($phone, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="iban">IBAN</label>
+                    <input type="text" id="iban" name="iban" value="<?= htmlspecialchars($iban, ENT_QUOTES, 'UTF-8') ?>" maxlength="34">
+                </div>
+                <div class="form-group">
+                    <label for="swift">SWIFT</label>
+                    <input type="text" id="swift" name="swift" value="<?= htmlspecialchars($swift, ENT_QUOTES, 'UTF-8') ?>" maxlength="11">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="bankName">Nom de la banque</label>
+                <input type="text" id="bankName" name="bankName" value="<?= htmlspecialchars($bankName, ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+
+
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="company">Société</label>

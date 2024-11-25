@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
         input.classList.remove("invalid");
     }
 
+
     // Fonction de validation pour chaque champ
     function validateInput(input) {
         const value = input.value.trim();
@@ -54,6 +55,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (name === "phone" && value !== "" && !/^\+?[0-9\s]+$/.test(value)) {
             return "Veuillez renseigner un numéro de téléphone valide.";
         }
+
+        if (name === "iban" && value !== "" && !/^[A-Z]{2}[0-9]{2}(?:[ ]?[0-9]{4}){3,7}(?:[ ]?[0-9]{1,4})?$/.test(value)) {
+            return "Veuillez entrer un IBAN valide.";
+        }        
+
+        if (name === "swift" && value !== "" && !/^[A-Z]{4}[ ]?[A-Z]{2}[ ]?[A-Z0-9]{2}([ ]?[A-Z0-9]{3})?$/.test(value)) {
+            return "Veuillez renseigner un code SWIFT valide.";
+        }        
+        
 
         if (["entity", "docType", "docNumber", "docExp", "firstName", "familyName", "address", "locality", "country", "interest", "referer"].includes(name) && value === "") {
             return "Veuillez renseigner ce champ.";
