@@ -1,0 +1,250 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+}
+
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border-radius: 8px;
+}
+
+h1 {
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #555;
+    font-size: 13px;
+}
+
+input, select {
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f9f9f9;
+    transition: border-color 0.3s ease;
+}
+
+input:focus, select:focus {
+    border-color: #007bff;
+    background: #fff;
+    outline: none;
+}
+
+.error {
+    display: inline-block;
+    color: red;
+    font-size: 0.875em;
+    opacity: 0;
+    transform: translateY(-10px);
+    animation: fadeIn 0.3s forwards;
+}
+
+.invalid {
+    border: 1px solid red;
+}
+
+.invalid:focus {
+    border-color: darkred;
+}
+
+#globalError {
+    display: none;
+    color: red;
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid red;
+    text-align: center;
+    margin-top: 20px;
+    border-radius: 5px;
+    background-color: #fdd;
+    opacity: 0;
+    transform: translateY(-10px);
+    animation: fadeIn 0.5s forwards;
+}
+
+.flash-message {
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.flash-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.flash-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+
+/* Animation fadeIn */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Animation fadeOut */
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+input,
+select {
+    border: 1px solid #ccc;
+    padding: 8px;
+    font-size: .9rem;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    transition: border-color 0.3s;
+}
+
+input:focus,
+select:focus {
+    border-color: #007bff;
+    font-size: 1rem
+}
+
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.submit-button:hover {
+    background-color: #0056b3;
+}
+
+button.submit-button:active {
+    background: #003f7f;
+}
+
+/* Animation d'entrée lors du focus */
+.input-focused {
+    border-color: #007bff; /* Couleur bleu clair pour le focus */
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+    color: rgba(0, 0, 0, 0.6); /* Texte légèrement pâle */
+    transition: all 0.3s ease-in-out; /* Transition fluide */
+}
+
+/* Animation lorsqu'un champ est rempli */
+.input-filled {
+    background-color: #f9f9f9; 
+    color: rgba(49, 49, 49, 0.7);
+    transition: all 0.3s ease-in-out;
+}
+
+/* Transition fluide pour tous les champs */
+input,
+select,
+textarea {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Champ par défaut */
+input,
+textarea {
+    color: rgba(0, 0, 0, 1); /* Couleur normale du texte */
+    background-color: #ffffff; /* Couleur de fond par défaut */
+}
+
+/* Animation de texte plus pâle sur le focus */
+.input-focused::placeholder {
+    color: rgba(0, 0, 0, 0.4); /* Placeholder plus pâle */
+    transition: color 0.3s ease-in-out;
+}
+
+
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .form-container {
+        padding: 15px;
+    }
+    h1 {
+        font-size: 1.5rem;
+    }
+    .submit-button {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-container {
+        padding: 10px;
+    }
+    .submit-button {
+        padding: 8px;
+        font-size: 12px;
+    }
+    h1 {
+        font-size: 1.2rem;
+    }
+}
