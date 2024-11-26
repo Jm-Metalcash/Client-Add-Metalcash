@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (name === "iban" && value !== "" && !/^[A-Z]{2}[0-9]{2}(?:[ ]?[0-9]{4}){3,7}(?:[ ]?[0-9]{1,4})?$/.test(value)) {
-            return "Veuillez entrer un IBAN valide.";
+            return "Veuillez renseigner un IBAN valide.";
         }        
 
         if (name === "swift" && value !== "" && !/^[A-Z]{4}[ ]?[A-Z]{2}[ ]?[A-Z0-9]{2}([ ]?[A-Z0-9]{3})?$/.test(value)) {

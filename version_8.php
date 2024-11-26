@@ -130,6 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
                     <option value="2">Metalcash - NL</option>
                 </select>
             </div>
+
+            <h2>Informations sur le document</h2>
             <div class="form-group">
                 <label for="docType">Type de document *</label>
                 <select id="docType" name="docType">
@@ -149,6 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
                     <input type="date" id="docExp" name="docExp">
                 </div>
             </div>
+
+            <h2>Informations générales</h2>
             <div class="form-row">
                 <div class="form-group">
                     <label for="familyName">Nom *</label>
@@ -165,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             </div>
             <div class="form-group">
                 <label for="address">Adresse *</label>
-                <input type="text" id="address" name="address" value="<?= htmlspecialchars($address, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="text" id="address" name="address" placeholder=" " value="<?= htmlspecialchars($address, ENT_QUOTES, 'UTF-8') ?>">
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -188,14 +192,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
                 </div>
             </div>
 
+            <h2>Informations bancaires</h2>
             <div class="form-row">
                 <div class="form-group">
                     <label for="iban">IBAN</label>
-                    <input type="text" id="iban" name="iban" value="<?= htmlspecialchars($iban, ENT_QUOTES, 'UTF-8') ?>" maxlength="34">
+                    <input type="text" id="iban" name="iban" value="<?= htmlspecialchars($iban, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="form-group">
                     <label for="swift">SWIFT</label>
-                    <input type="text" id="swift" name="swift" value="<?= htmlspecialchars($swift, ENT_QUOTES, 'UTF-8') ?>" maxlength="11">
+                    <input type="text" id="swift" name="swift" value="<?= htmlspecialchars($swift, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
             <div class="form-group">
@@ -215,6 +220,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
                     <input type="text" id="companyvat" name="companyvat" value="<?= htmlspecialchars($companyvat, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
+
+            <h2>Informations complémentaires</h2>
             <div class="form-group">
                 <label for="interest">Intérêt</label>
                 <select id="interest" name="interest">
@@ -241,6 +248,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
 
     <script src="./js/formValidationAdd.js" defer></script>
     <script src="./js/animationInputsAdd.js" defer></script>
+    <script src="./js/GooglePlaceAPI.js" defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSabS4IR4na718B5zm0NB0sPdgg3Da-7E&libraries=places&callback=initAutocomplete" defer></script>
 </body>
 
 </html>
