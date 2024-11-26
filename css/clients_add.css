@@ -7,7 +7,7 @@ body {
 
 .form-container {
     max-width: 800px;
-    margin: 0 auto;
+    margin: 50px auto;
     padding: 20px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     background-color: #ffffff;
@@ -63,6 +63,12 @@ input:focus, select:focus {
     border-color: #007bff;
     background: #fff;
     outline: none;
+}
+
+input::placeholder {
+    font-style: italic;
+    font-size: 14px;
+    opacity: .8;
 }
 
 .error {

@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             <div class="form-row">
                 <div class="form-group">
                     <label for="docNumber">Numéro de document *</label>
-                    <input type="text" id="docNumber" name="docNumber" value="<?= htmlspecialchars($docNumber, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="docNumber" name="docNumber" placeholder="exemple: 123-1234567-12" value="<?= htmlspecialchars($docNumber, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="form-group">
                     <label for="docExp">Date d'expiration *</label>
@@ -156,11 +156,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             <div class="form-row">
                 <div class="form-group">
                     <label for="familyName">Nom *</label>
-                    <input type="text" id="familyName" name="familyName" value="<?= htmlspecialchars($familyName, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="familyName" name="familyName" placeholder="exemple: John" value="<?= htmlspecialchars($familyName, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="form-group">
                     <label for="firstName">Prénom *</label>
-                    <input type="text" id="firstName" name="firstName" value="<?= htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="firstName" name="firstName" placeholder="exemple: Doe" value="<?= htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
             <div class="form-group">
@@ -169,26 +169,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             </div>
             <div class="form-group">
                 <label for="address">Adresse *</label>
-                <input type="text" id="address" name="address" placeholder=" " value="<?= htmlspecialchars($address, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="text" id="address" name="address" placeholder="exemple: Avenue du marché 12" value="<?= htmlspecialchars($address, ENT_QUOTES, 'UTF-8') ?>">
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="locality">Localité *</label>
-                    <input type="text" id="locality" name="locality" value="<?= htmlspecialchars($locality, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="locality" name="locality" placeholder="exemple: 4000 Liège" value="<?= htmlspecialchars($locality, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="form-group">
                     <label for="country">Pays *</label>
-                    <input type="text" id="country" name="country" value="<?= htmlspecialchars($country, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="country" name="country" placeholder="exemple: Belgique" value="<?= htmlspecialchars($country, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="email">E-mail</label>
-                    <input type="email" id="email" name="email" value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="email" id="email" name="email" placeholder="exemple: johndoe@exemple.be" value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="form-group">
                     <label for="phone">Téléphone</label>
-                    <input type="text" id="phone" name="phone" value="<?= htmlspecialchars($phone, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="phone" name="phone" placeholder="exemple: +32 493 87 22 10" value="<?= htmlspecialchars($phone, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
 
@@ -196,16 +196,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             <div class="form-row">
                 <div class="form-group">
                     <label for="iban">IBAN</label>
-                    <input type="text" id="iban" name="iban" value="<?= htmlspecialchars($iban, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="iban" placeholder="exemple: BE71096123456769" name="iban" value="<?= htmlspecialchars($iban, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="form-group">
                     <label for="swift">SWIFT</label>
-                    <input type="text" id="swift" name="swift" value="<?= htmlspecialchars($swift, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="swift" name="swift" placeholder="exemple: KRED BE BB" value="<?= htmlspecialchars($swift, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
             <div class="form-group">
                 <label for="bankName">Nom de la banque</label>
-                <input type="text" id="bankName" name="bankName" value="<?= htmlspecialchars($bankName, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="text" id="bankName" name="bankName" placeholder="exemple: KBC Bank" value="<?= htmlspecialchars($bankName, ENT_QUOTES, 'UTF-8') ?>">
             </div>
 
 
@@ -213,11 +213,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             <div class="form-row">
                 <div class="form-group">
                     <label for="company">Société</label>
-                    <input type="text" id="company" name="company" value="<?= htmlspecialchars($company, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="company" name="company" placeholder="exemple: Metalcash SPRL" value="<?= htmlspecialchars($company, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
                 <div class="form-group">
                     <label for="companyvat">Numéro de TVA</label>
-                    <input type="text" id="companyvat" name="companyvat" value="<?= htmlspecialchars($companyvat, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="companyvat" name="companyvat" placeholder="exemple: BE0123456789" value="<?= htmlspecialchars($companyvat, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
 
@@ -248,6 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
 
     <script src="./js/formValidationAdd.js" defer></script>
     <script src="./js/animationInputsAdd.js" defer></script>
+    <script src="./js/openIbanApi.js" defer></script>
     <script src="./js/GooglePlaceAPI.js" defer></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSabS4IR4na718B5zm0NB0sPdgg3Da-7E&libraries=places&callback=initAutocomplete" defer></script>
 </body>
