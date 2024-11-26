@@ -92,15 +92,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     $clientId = $pdo->lastInsertId();
 
     // Insertion de la note dans la table `client_notes`
-    if (!empty($note)) {
-        $stmt = $pdo->prepare("
-        INSERT INTO client_notes (client_id, note) 
-        VALUES (:client_id, :note)
-    ");
-        $stmt->execute([
-            ':client_id' => $clientId,
-            ':note' => $note,
-        ]);
+    if (!empty($_POST['notes'])) {
+        $notes = json_decode($_POST['notes'], true); // Récupérer les notes envoyées en JSON
+        foreach ($notes as $note) {
+            $stmt = $pdo->prepare("
+                INSERT INTO client_notes (client_id, note) 
+                VALUES (:client_id, :note)
+            ");
+            $stmt->execute([
+                ':client_id' => $clientId,
+                ':note' => $note['text'],
+            ]);
+        }
     }
 
     // Gestion de l'upload des documents (recto et verso)
@@ -137,44 +140,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             }
 
             $filePaths[$key] = $secureName; // Ajouter le nom du fichier sécurisé
-        } else {
-            // Gestion des erreurs d'upload
-            switch ($file['error']) {
-                case UPLOAD_ERR_INI_SIZE:
-                case UPLOAD_ERR_FORM_SIZE:
-                    die("Le fichier $key dépasse la taille maximale autorisée.");
-                case UPLOAD_ERR_NO_FILE:
-                    die("Aucun fichier pour $key n'a été téléversé.");
-                default:
-                    die("Une erreur est survenue lors du téléversement du fichier $key.");
-            }
         }
     }
 
-    if (count($filePaths) === 2) {
-        // Insertion dans la table client_documents
+
+    // Si des fichiers ont été téléversés, insérer les chemins dans la base de données
+    if (!empty($filePaths)) {
         $stmt = $pdo->prepare("
-            INSERT INTO client_documents (client_id, document_recto, document_verso) 
-            VALUES (:client_id, :document_recto, :document_verso)
-        ");
-        if ($stmt->execute([
+        INSERT INTO client_documents (client_id, document_recto, document_verso) 
+        VALUES (:client_id, :document_recto, :document_verso)
+    ");
+        $stmt->execute([
             ':client_id' => $clientId,
-            ':document_recto' => $filePaths['recto'],
-            ':document_verso' => $filePaths['verso'],
-        ])) {
-            echo "Insertion réussie dans la table documents_client.";
-        } else {
-            print_r($stmt->errorInfo());
-            die("Erreur lors de l'insertion dans la base de données.");
-        }
-    } else {
-        die("Les fichiers recto et verso n'ont pas été correctement téléversés.");
+            ':document_recto' => $filePaths['recto'] ?? null,
+            ':document_verso' => $filePaths['verso'] ?? null,
+        ]);
     }
 
     $processed = true;
 
     // Ajouter un message flash à la session
-    $_SESSION['flash_message'] = "Le client et ses documents ont été ajoutés avec succès.";
+    $_SESSION['flash_message'] = "Le client a été ajouté avec succès";
 
     // Redirection pour éviter une double soumission
     header("Location: " . $_SERVER['PHP_SELF']);
@@ -241,8 +227,6 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
 
 ?>
 
-
-
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -265,9 +249,10 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
 
     <div class="form-container">
         <h1>Ajouter un nouveau client</h1>
-        <form method="POST" enctype="multipart/form-data" class="form" id="clientForm">
-            <input type="text" name="fake_field" style="display:none;" tabindex="-1">
+        <form method="POST" enctype="multipart/form-data" class="form" id="clientForm" style="margin-top: 60px;"">
+            <input type=" text" name="fake_field" style="display:none;" tabindex="-1">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            <input type="hidden" id="notes-hidden" name="notes">
 
             <div class="form-group">
                 <label for="entity">Entité *</label>
@@ -277,11 +262,26 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="note">Note</label>
-                <textarea id="note" name="note" placeholder="Ajouter une note pour ce client"><?= htmlspecialchars($note ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+            <div class="notes-section">
+                <table class="notes-table">
+                    <thead>
+                        <tr>
+                            <th class="table-header">Date</th>
+                            <th class="table-header">Note</th>
+                            <th class="table-header"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="notes-list">
+                        <!-- Les notes seront insérées ici par le script -->
+                    </tbody>
+                </table>
             </div>
 
+            <div class="form-group notes-container">
+                <label for="new-note">Ajouter une note</label>
+                <input id="new-note" class="note-input" placeholder="Écrivez une nouvelle note..."></input>
+                <button type="button" id="add-note-button" class="add-note-button">Enregistrer la note</button>
+            </div>
 
             <h2>Informations sur le document d'identité</h2>
             <div class="form-group">
@@ -417,6 +417,7 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
 
     <script src="./js/formValidationAdd.js" defer></script>
     <script src="./js/animationInputsAdd.js" defer></script>
+    <script src="./js/addClientNote.js" defer></script>
     <script src="./js/documentUploadShow.js" defer></script>
     <script src="./js/openIbanApi.js" defer></script>
     <script src="./js/GooglePlaceAPI.js" defer></script>
