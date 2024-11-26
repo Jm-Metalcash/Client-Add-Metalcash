@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     $interest = $_POST['interest'];
     $referer = $_POST['referer'];
     $regdate = date('Y-m-d');
+    $note = trim($_POST['note'] ?? null);
 
     // Insertion dans la base de données
     $stmt = $pdo->prepare("
@@ -85,6 +86,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
         ':swift' => $swift,
         ':bankName' => $bankName,
     ]);
+
+    // Récupération de l'ID du client inséré
+    $clientId = $pdo->lastInsertId();
+
+    // Insertion de la note dans la table `client_notes`
+    if (!empty($note)) {
+        $stmt = $pdo->prepare("
+        INSERT INTO client_notes (client_id, note) 
+        VALUES (:client_id, :note)
+    ");
+        $stmt->execute([
+            ':client_id' => $clientId,
+            ':note' => $note,
+        ]);
+    }
 
     $processed = true;
 
@@ -130,6 +146,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
                     <option value="2">Metalcash - NL</option>
                 </select>
             </div>
+
+            <div class="form-group">
+                <label for="note">Note</label>
+                <textarea id="note" name="note" placeholder="Ajouter une note pour ce client"><?= htmlspecialchars($note ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+            </div>
+
 
             <h2>Informations sur le document</h2>
             <div class="form-group">

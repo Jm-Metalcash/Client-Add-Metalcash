@@ -68,7 +68,15 @@ input:focus, select:focus {
 input::placeholder {
     font-style: italic;
     font-size: 14px;
-    opacity: .8;
+    opacity: .5;
+}
+textarea {
+    height: 50px;
+}
+textarea::placeholder {
+    font-style: italic;
+    font-size: 14px;
+    opacity: 0.5;
 }
 
 .error {

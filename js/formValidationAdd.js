@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
         input.classList.remove("invalid");
     }
 
-
     // Fonction de validation pour chaque champ
     function validateInput(input) {
         const value = input.value.trim();
@@ -58,12 +57,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (name === "iban" && value !== "" && !/^[A-Z]{2}[0-9]{2}(?:[ ]?[0-9]{4}){3,7}(?:[ ]?[0-9]{1,4})?$/.test(value)) {
             return "Veuillez renseigner un IBAN valide.";
-        }        
+        }
 
         if (name === "swift" && value !== "" && !/^[A-Z]{4}[ ]?[A-Z]{2}[ ]?[A-Z0-9]{2}([ ]?[A-Z0-9]{3})?$/.test(value)) {
             return "Veuillez renseigner un code SWIFT valide.";
-        }        
-        
+        }
 
         if (["entity", "docType", "docNumber", "docExp", "firstName", "familyName", "address", "locality", "country", "interest", "referer"].includes(name) && value === "") {
             return "Veuillez renseigner ce champ.";
@@ -84,8 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Gérer l'événement de sortie de champ
+    // Gérer les événements des champs
     form.querySelectorAll("input, select").forEach((input) => {
+        // Valider sur blur
         input.addEventListener("blur", () => {
             const errorMessage = validateInput(input);
             if (errorMessage) {
@@ -93,16 +92,25 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 clearError(input);
             }
-            checkGlobalErrors(); // Vérifie les erreurs globales après validation de chaque champ
+            checkGlobalErrors();
         });
 
-        // Supprime l'erreur une fois corrigée
+        // Supprimer l'erreur en cas de modification
         input.addEventListener("input", () => {
             const errorMessage = validateInput(input);
             if (!errorMessage) {
                 clearError(input);
             }
-            checkGlobalErrors(); // Vérifie les erreurs globales après correction
+            checkGlobalErrors();
+        });
+
+        // Supprimer l'erreur en cas de remplissage automatique (API)
+        input.addEventListener("change", () => {
+            const errorMessage = validateInput(input);
+            if (!errorMessage) {
+                clearError(input);
+            }
+            checkGlobalErrors();
         });
     });
 
@@ -126,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Bloquer la soumission si des erreurs sont présentes
         if (!isValid) {
-            e.preventDefault(); // Empêcher la soumission
+            e.preventDefault();
             globalError.style.display = "block";
             globalError.style.animation = "fadeIn 0.5s forwards";
         } else {
