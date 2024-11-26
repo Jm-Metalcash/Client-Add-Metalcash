@@ -33,28 +33,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     }
 
     // Récupération des champs
-    $entity = $_POST['entity'];
-    $docType = $_POST['docType'];
-    $docNumber = strtoupper(trim($_POST['docNumber']));
-    $docExp = $_POST['docExp'] ?? null;
-    $familyName = strtoupper(trim($_POST['familyName']));
-    $firstName = ucwords(strtolower(trim($_POST['firstName'])));
-    $fullName = trim("$familyName $firstName");
-    $birthDate = $_POST['birthDate'] ?? null;
-    $address = ucfirst(trim($_POST['address']));
-    $locality = ucfirst(trim($_POST['locality']));
-    $country = strtoupper(trim($_POST['country']));
-    $email = filter_var($_POST['email'] ?? null, FILTER_VALIDATE_EMAIL);
-    $phone = trim($_POST['phone'] ?? null);
-    $company = strtoupper(trim($_POST['company'] ?? null));
-    $companyvat = strtoupper(trim($_POST['companyvat'] ?? null));
-    $iban = strtoupper(trim($_POST['iban'] ?? null));
-    $swift = strtoupper(trim($_POST['swift'] ?? null));
-    $bankName = ucfirst(trim($_POST['bankName'] ?? null));
-    $interest = $_POST['interest'];
-    $referer = $_POST['referer'];
-    $note = trim($_POST['note'] ?? null);
+    $entity = $_POST['entity'] ?? null;
+    $docType = $_POST['docType'] ?? null;
+    $docNumber = !empty(trim($_POST['docNumber'])) ? strtoupper(trim($_POST['docNumber'])) : null;
+    $docExp = !empty(trim($_POST['docExp'])) ? $_POST['docExp'] : null;
+    $familyName = !empty(trim($_POST['familyName'])) ? strtoupper(trim($_POST['familyName'])) : null;
+    $firstName = !empty(trim($_POST['firstName'])) ? ucwords(strtolower(trim($_POST['firstName']))) : null;
+    $fullName = $familyName && $firstName ? trim("$familyName $firstName") : null;
+    $birthDate = !empty(trim($_POST['birthDate'])) ? $_POST['birthDate'] : null;
+    $address = !empty(trim($_POST['address'])) ? ucfirst(trim($_POST['address'])) : null;
+    $locality = !empty(trim($_POST['locality'])) ? ucfirst(trim($_POST['locality'])) : null;
+    $country = !empty(trim($_POST['country'])) ? strtoupper(trim($_POST['country'])) : null;
+    $email = !empty(trim($_POST['email'])) ? filter_var($_POST['email'], FILTER_VALIDATE_EMAIL) : null;
+    $phone = !empty(trim($_POST['phone'])) ? trim($_POST['phone']) : null;
+    $company = !empty(trim($_POST['company'])) ? strtoupper(trim($_POST['company'])) : null;
+    $companyvat = !empty(trim($_POST['companyvat'])) ? strtoupper(trim($_POST['companyvat'])) : null;
+    $iban = !empty(trim($_POST['iban'])) ? strtoupper(trim($_POST['iban'])) : null;
+    $swift = !empty(trim($_POST['swift'])) ? strtoupper(trim($_POST['swift'])) : null;
+    $bankName = !empty(trim($_POST['bankName'])) ? ucfirst(trim($_POST['bankName'])) : null;
+    $interest = $_POST['interest'] ?? null;
+    $referer = $_POST['referer'] ?? null;
+    $note = !empty(trim($_POST['note'])) ? trim($_POST['note']) : null;
     $regdate = date('Y-m-d');
+
 
     // Insertion du client dans la table clients
     $stmt = $pdo->prepare("
@@ -282,7 +283,7 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
             </div>
 
 
-            <h2>Informations sur le document</h2>
+            <h2>Informations sur le document d'identité</h2>
             <div class="form-group">
                 <label for="docType">Type de document *</label>
                 <select id="docType" name="docType">
@@ -293,21 +294,21 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
                 </select>
             </div>
             <div class="form-row">
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docNumber">Numéro de document *</label>
                     <input type="text" id="docNumber" name="docNumber" placeholder="exemple: 123-1234567-12" value="<?= htmlspecialchars($docNumber, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docExp">Date d'expiration *</label>
                     <input type="date" id="docExp" name="docExp">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="document_recto">Document d'identité - Recto</label>
+                <label for="document_recto">Téléverser document d'identité - Recto</label>
                 <input type="file" id="document_recto" name="document_recto" accept="image/*">
 
-                <label for="document_verso">Document d'identité - Verso</label>
+                <label for="document_verso">Téléverser document d'identité - Verso</label>
                 <input type="file" id="document_verso" name="document_verso" accept="image/*">
 
                 <div id="previewBoth" class="preview-both"></div>
