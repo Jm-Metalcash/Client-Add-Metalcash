@@ -2,9 +2,9 @@
 session_start();
 
 // Initialisation des variables pour sécurité htmlspecialchars
-$entity = $docType = $docNumber = $docExp = $familyName = $firstName = $birthDate = $address = $locality = $country = $email = $phone = $company = $companyvat = $interest = $referer = $iban = $swift = $bankName = '';
+$entity = $docType = $docNumber = $docExp = $familyName = $firstName = $birthDate = $address = $locality = $country = $email = $phone = $company = $companyvat = $interest = $referer = $iban = $swift = $bankName = $note = '';
 
-//honeypot détection de bots
+// Honeypot pour détecter les bots
 if (!empty($_POST['fake_field'])) {
     die("Spam détecté.");
 }
@@ -48,21 +48,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     $phone = trim($_POST['phone'] ?? null);
     $company = strtoupper(trim($_POST['company'] ?? null));
     $companyvat = strtoupper(trim($_POST['companyvat'] ?? null));
-    $iban = strtoupper(trim($_POST['iban'] ?? ''));
-    $swift = strtoupper(trim($_POST['swift'] ?? ''));
-    $bankName = ucfirst(trim($_POST['bankName'] ?? ''));
+    $iban = strtoupper(trim($_POST['iban'] ?? null));
+    $swift = strtoupper(trim($_POST['swift'] ?? null));
+    $bankName = ucfirst(trim($_POST['bankName'] ?? null));
     $interest = $_POST['interest'];
     $referer = $_POST['referer'];
-    $regdate = date('Y-m-d');
     $note = trim($_POST['note'] ?? null);
+    $regdate = date('Y-m-d');
 
-    // Insertion dans la base de données
+    // Insertion du client dans la table clients
     $stmt = $pdo->prepare("
-    INSERT INTO clients 
-    (entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, interest, referer, regdate, iban, swift, bankName) 
-    VALUES 
-    (:entity, :docType, :docNumber, :docExp, :fullName, :familyName, :firstName, :birthDate, :address, :locality, :country, :email, :phone, :company, :companyvat, :interest, :referer, :regdate, :iban, :swift, :bankName)
-");
+        INSERT INTO clients 
+        (entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, interest, referer, regdate, iban, swift, bankName) 
+        VALUES 
+        (:entity, :docType, :docNumber, :docExp, :fullName, :familyName, :firstName, :birthDate, :address, :locality, :country, :email, :phone, :company, :companyvat, :interest, :referer, :regdate, :iban, :swift, :bankName)
+    ");
     $stmt->execute([
         ':entity' => $entity,
         ':docType' => $docType,
@@ -102,16 +102,145 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
         ]);
     }
 
+    // Gestion de l'upload des documents (recto et verso)
+    $allowedExtensions = ['jpg', 'jpeg', 'png'];
+    $uploadDir = __DIR__ . '/uploads_documents/images/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true); // Crée le dossier avec les permissions nécessaires
+    }
+    $recto = $_FILES['document_recto'] ?? null;
+    $verso = $_FILES['document_verso'] ?? null;
+
+    $filePaths = [];
+
+    foreach (['recto' => $recto, 'verso' => $verso] as $key => $file) {
+        if ($file && $file['error'] === UPLOAD_ERR_OK) {
+            $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+            if (!in_array($fileExt, $allowedExtensions)) {
+                die("Seuls les fichiers JPG, JPEG et PNG sont autorisés pour le $key.");
+            }
+
+            // Générer un nom sécurisé
+            $secureName = hash('sha256', uniqid() . $file['name']) . '.' . $fileExt;
+
+            // Redimensionner l'image
+            $destinationPath = $uploadDir . $secureName;
+            if (!resizeImage($file['tmp_name'], $destinationPath)) {
+                die("Erreur lors du redimensionnement de l'image $key.");
+            }
+
+            // Vérifiez si le fichier a bien été stocké
+            if (!file_exists($destinationPath)) {
+                die("Le fichier $key n'a pas été correctement téléversé.");
+            }
+
+            $filePaths[$key] = $secureName; // Ajouter le nom du fichier sécurisé
+        } else {
+            // Gestion des erreurs d'upload
+            switch ($file['error']) {
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    die("Le fichier $key dépasse la taille maximale autorisée.");
+                case UPLOAD_ERR_NO_FILE:
+                    die("Aucun fichier pour $key n'a été téléversé.");
+                default:
+                    die("Une erreur est survenue lors du téléversement du fichier $key.");
+            }
+        }
+    }
+
+    if (count($filePaths) === 2) {
+        // Insertion dans la table client_documents
+        $stmt = $pdo->prepare("
+            INSERT INTO client_documents (client_id, document_recto, document_verso) 
+            VALUES (:client_id, :document_recto, :document_verso)
+        ");
+        if ($stmt->execute([
+            ':client_id' => $clientId,
+            ':document_recto' => $filePaths['recto'],
+            ':document_verso' => $filePaths['verso'],
+        ])) {
+            echo "Insertion réussie dans la table documents_client.";
+        } else {
+            print_r($stmt->errorInfo());
+            die("Erreur lors de l'insertion dans la base de données.");
+        }
+    } else {
+        die("Les fichiers recto et verso n'ont pas été correctement téléversés.");
+    }
+
     $processed = true;
 
     // Ajouter un message flash à la session
-    $_SESSION['flash_message'] = "Le client a été ajouté avec succès.";
+    $_SESSION['flash_message'] = "Le client et ses documents ont été ajoutés avec succès.";
 
     // Redirection pour éviter une double soumission
     header("Location: " . $_SERVER['PHP_SELF']);
     exit;
 }
+
+// Fonction pour redimensionner les images
+function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
+{
+    $imageInfo = getimagesize($source);
+    if (!$imageInfo) {
+        die("Impossible de lire les informations de l'image source.");
+    }
+
+    $width = $imageInfo[0];
+    $height = $imageInfo[1];
+    $mime = $imageInfo['mime'];
+
+    // Calcul des nouvelles dimensions
+    $scale = min($maxWidth / $width, $maxHeight / $height);
+    $newWidth = ceil($width * $scale);
+    $newHeight = ceil($height * $scale);
+
+    // Charger l'image source
+    switch ($mime) {
+        case 'image/jpeg':
+            $sourceImage = @imagecreatefromjpeg($source);
+            break;
+        case 'image/png':
+            $sourceImage = @imagecreatefrompng($source);
+            break;
+        default:
+            die("Format d'image non supporté. Type MIME : $mime");
+    }
+
+    if (!$sourceImage) {
+        die("Erreur lors du chargement de l'image source.");
+    }
+
+    // Créer une nouvelle image redimensionnée
+    $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+    if (!$resizedImage) {
+        die("Impossible de créer une nouvelle image redimensionnée.");
+    }
+
+    // Appliquer le redimensionnement
+    $success = imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+    if (!$success) {
+        die("Erreur lors du redimensionnement de l'image.");
+    }
+
+    // Sauvegarder l'image
+    $saveSuccess = imagejpeg($resizedImage, $destination, 85); // Compression JPEG
+    if (!$saveSuccess) {
+        die("Impossible de sauvegarder l'image redimensionnée.");
+    }
+
+    // Libérer la mémoire
+    imagedestroy($sourceImage);
+    imagedestroy($resizedImage);
+
+    return true;
+}
+
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -135,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
 
     <div class="form-container">
         <h1>Ajouter un nouveau client</h1>
-        <form method="POST" class="form" id="clientForm">
+        <form method="POST" enctype="multipart/form-data" class="form" id="clientForm">
             <input type="text" name="fake_field" style="display:none;" tabindex="-1">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
 
@@ -173,6 +302,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
                     <input type="date" id="docExp" name="docExp">
                 </div>
             </div>
+
+            <div class="form-group">
+                <label for="document_recto">Document d'identité - Recto</label>
+                <input type="file" id="document_recto" name="document_recto" accept="image/*">
+
+                <label for="document_verso">Document d'identité - Verso</label>
+                <input type="file" id="document_verso" name="document_verso" accept="image/*">
+
+                <div id="previewBoth" class="preview-both"></div>
+            </div>
+
+            <!-- Modal pour afficher l'image en grand -->
+            <div id="imageModal" class="modal">
+                <span class="close">&times;</span>
+                <img class="modal-content" id="modalImage">
+            </div>
+
 
             <h2>Informations générales</h2>
             <div class="form-row">
@@ -270,6 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
 
     <script src="./js/formValidationAdd.js" defer></script>
     <script src="./js/animationInputsAdd.js" defer></script>
+    <script src="./js/documentUploadShow.js" defer></script>
     <script src="./js/openIbanApi.js" defer></script>
     <script src="./js/GooglePlaceAPI.js" defer></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSabS4IR4na718B5zm0NB0sPdgg3Da-7E&libraries=places&callback=initAutocomplete" defer></script>

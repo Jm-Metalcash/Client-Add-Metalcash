@@ -83,6 +83,7 @@ textarea::placeholder {
     display: inline-block;
     color: red;
     font-size: 0.875em;
+    font-size: 12px;
     opacity: 0;
     transform: translateY(-10px);
     animation: fadeIn 0.3s forwards;
@@ -130,6 +131,54 @@ textarea::placeholder {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
+}
+
+/* Upload documents */
+.preview-both {
+    display: flex;
+    align-items: start;
+    margin-top: 10px;
+    gap: 10px;
+}
+
+.preview-both img {
+    max-width: 150px;
+    max-height: 150px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    object-fit: cover;
+}
+.preview-both img:hover {
+    transform: scale(1.1);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+}
+
+.modal .close {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 30px;
+    color: white;
+    cursor: pointer;
 }
 
 
