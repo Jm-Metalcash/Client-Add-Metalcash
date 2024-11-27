@@ -36,14 +36,78 @@ $stmtDocuments = $pdo->prepare("
 $stmtDocuments->execute([':client_id' => $clientId]);
 $documents = $stmtDocuments->fetch();
 
-// Vérification si les documents existent dans le système de fichiers
-$uploadDir = __DIR__ . '/uploads_documents/client/images/';
-$documentRectoPath = $documents['document_recto'] ? $uploadDir . $documents['document_recto'] : null;
-$documentVersoPath = $documents['document_verso'] ? $uploadDir . $documents['document_verso'] : null;
+// Traitement de la mise à jour
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. Récupérer les anciennes données pour les insérer dans `clients_history`
+    $stmt = $pdo->prepare("
+        INSERT INTO clients_history 
+        (client_id, entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, iban, swift, bankName, interest, referer, regdate, modified_at) 
+        SELECT ID, entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, iban, swift, bankName, interest, referer, regdate, NOW() 
+        FROM clients 
+        WHERE ID = :id
+    ");
+    $stmt->execute([':id' => $clientId]);
 
-$documentRectoExists = $documentRectoPath && file_exists($documentRectoPath);
-$documentVersoExists = $documentVersoPath && file_exists($documentVersoPath);
+    // 2. Mettre à jour les nouvelles données dans la table `clients`
+    $stmt = $pdo->prepare("
+        UPDATE clients SET 
+            entity = :entity,
+            docType = :docType,
+            docNumber = :docNumber,
+            docExp = :docExp,
+            fullName = :fullName,
+            familyName = :familyName,
+            firstName = :firstName,
+            birthDate = :birthDate,
+            address = :address,
+            locality = :locality,
+            country = :country,
+            email = :email,
+            phone = :phone,
+            company = :company,
+            companyvat = :companyvat,
+            iban = :iban,
+            swift = :swift,
+            bankName = :bankName,
+            interest = :interest,
+            referer = :referer,
+            regdate = :regdate
+        WHERE ID = :id
+    ");
+    $stmt->execute([
+        ':entity' => $_POST['entity'],
+        ':docType' => $_POST['docType'],
+        ':docNumber' => $_POST['docNumber'],
+        ':docExp' => $_POST['docExp'],
+        ':fullName' => $_POST['familyName'] . ' ' . $_POST['firstName'],
+        ':familyName' => $_POST['familyName'],
+        ':firstName' => $_POST['firstName'],
+        ':birthDate' => $_POST['birthDate'],
+        ':address' => $_POST['address'],
+        ':locality' => $_POST['locality'],
+        ':country' => $_POST['country'],
+        ':email' => $_POST['email'],
+        ':phone' => $_POST['phone'],
+        ':company' => $_POST['company'],
+        ':companyvat' => $_POST['companyvat'],
+        ':iban' => $_POST['iban'],
+        ':swift' => $_POST['swift'],
+        ':bankName' => $_POST['bankName'],
+        ':interest' => $_POST['interest'],
+        ':referer' => $_POST['referer'],
+        ':regdate' => $client['regdate'], // Garder la même date d'enregistrement
+        ':id' => $clientId,
+    ]);
+
+    // Ajouter un message flash à la session
+    $_SESSION['flash_message'] = "Le client a été modifié avec succès";
+
+    // Redirection pour recharger la page avec les nouvelles données
+    header("Location: /Metalcash_clients_add/client/show/$clientId");
+    exit;
+}
 ?>
+
 
 
 <!DOCTYPE html>
@@ -57,6 +121,14 @@ $documentVersoExists = $documentVersoPath && file_exists($documentVersoPath);
 </head>
 
 <body>
+    <!-- FLASH MESSAGE SUCCESS -->
+    <?php if (isset($_SESSION['flash_message'])): ?>
+        <div class="flash-message success">
+            <?= htmlspecialchars($_SESSION['flash_message']) ?>
+        </div>
+        <?php unset($_SESSION['flash_message']);
+        ?>
+    <?php endif; ?>
     <div class="form-container">
         <h1>Informations du client</h1>
         <form method="POST" enctype="multipart/form-data" class="form" id="clientForm" style="margin-top: 60px;">
@@ -143,6 +215,16 @@ $documentVersoExists = $documentVersoPath && file_exists($documentVersoPath);
                     <input type="text" id="country" name="country" value="<?= htmlspecialchars($client['country']) ?>">
                 </div>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" value="<?= htmlspecialchars($client['email']) ?>">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Téléphone</label>
+                    <input type="text" id="phone" name="phone" value="<?= htmlspecialchars($client['phone']) ?>">
+                </div>
+            </div>
 
             <h2>Informations bancaires</h2>
             <div class="form-row">
@@ -158,6 +240,17 @@ $documentVersoExists = $documentVersoPath && file_exists($documentVersoPath);
             <div class="form-group">
                 <label for="bankName">Nom de la banque</label>
                 <input type="text" id="bankName" name="bankName" value="<?= htmlspecialchars($client['bankName']) ?>">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="company">Société</label>
+                    <input type="text" id="company" name="company" placeholder="exemple: Metalcash SPRL" value="<?= htmlspecialchars($client['company']) ?>">
+                </div>
+                <div class="form-group">
+                    <label for="companyvat">Numéro de TVA</label>
+                    <input type="text" id="companyvat" name="companyvat" placeholder="exemple: BE0123456789" value="<?= htmlspecialchars($client['companyvat']) ?>">
+                </div>
             </div>
 
             <h2>Informations complémentaires</h2>
@@ -180,7 +273,10 @@ $documentVersoExists = $documentVersoPath && file_exists($documentVersoPath);
                     <option value="4" <?= $client['referer'] == '4' ? 'selected' : '' ?>>Autre</option>
                 </select>
             </div>
+
+            <button type="submit" name="update_client" class="submit-button">Enregistrer les modifications</button>
         </form>
+        <div id="globalError">Merci de corriger les erreurs avant de continuer.</div>
     </div>
 
 
