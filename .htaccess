@@ -1,0 +1,4 @@
+RewriteEngine On
+
+# Si l'URL commence par /client/show/{id}, rediriger vers client/show/index.php?id={id}
+RewriteRule ^client/show/([0-9]+)$ client/show/index.php?id=$1 [L,QSA]

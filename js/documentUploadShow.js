@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalImage = document.getElementById("modalImage");
     const closeModal = document.querySelector(".modal .close");
 
-    // Fonction pour afficher la prévisualisation d'une image
+    // Fonction pour afficher la prévisualisation d'une image (téléversement)
     function displayImagePreview(input, position) {
         const file = input.files[0];
 
@@ -38,6 +38,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Fonction pour gérer les images existantes
+    function enableClickOnExistingImages() {
+        const existingImages = previewBoth.querySelectorAll("img[data-position]");
+        existingImages.forEach((img) => {
+            img.addEventListener("click", () => {
+                showModal(img.src); // Afficher l'image existante dans le modal
+            });
+        });
+    }
+
     // Fonction pour afficher le modal
     function showModal(imageSrc) {
         modalImage.src = imageSrc;
@@ -59,15 +69,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Afficher la prévisualisation pour le recto
-    rectoInput.addEventListener("change", () => {
-        displayImagePreview(rectoInput, "recto");
-    });
+    // Ajouter des écouteurs d'événements si les champs existent
+    if (rectoInput) {
+        rectoInput.addEventListener("change", () => {
+            displayImagePreview(rectoInput, "recto");
+        });
+    }
 
-    // Afficher la prévisualisation pour le verso
-    versoInput.addEventListener("change", () => {
-        displayImagePreview(versoInput, "verso");
-    });
+    if (versoInput) {
+        versoInput.addEventListener("change", () => {
+            displayImagePreview(versoInput, "verso");
+        });
+    }
+
+    // Activer les clics sur les images existantes
+    enableClickOnExistingImages();
 
     // Fonction pour afficher une erreur
     function showError(input, message) {

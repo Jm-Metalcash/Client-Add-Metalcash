@@ -1,4 +1,6 @@
 <?php
+require 'config.php';
+
 session_start();
 
 // Initialisation des variables pour sécurité htmlspecialchars
@@ -108,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
 
     // Gestion de l'upload des documents (recto et verso)
     $allowedExtensions = ['jpg', 'jpeg', 'png'];
-    $uploadDir = __DIR__ . '/uploads_documents/images/';
+    $uploadDir = __DIR__ . '/uploads_documents/client/images/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true); // Crée le dossier avec les permissions nécessaires
     }
@@ -126,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
             }
 
             // Générer un nom sécurisé
-            $secureName = hash('sha256', uniqid() . $file['name']) . '.' . $fileExt;
+            $secureName = $clientId . '-' . hash('sha256', uniqid() . $file['name']) . '.' . $fileExt;
 
             // Redimensionner l'image
             $destinationPath = $uploadDir . $secureName;
@@ -163,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     $_SESSION['flash_message'] = "Le client a été ajouté avec succès";
 
     // Redirection pour éviter une double soumission
-    header("Location: " . $_SERVER['PHP_SELF']);
+    header("Location: " . BASE_URL . "/client/show/$clientId");
     exit;
 }
 
@@ -224,7 +226,6 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
 
     return true;
 }
-
 ?>
 
 <!DOCTYPE html>
