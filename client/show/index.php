@@ -36,9 +36,56 @@ $stmtDocuments = $pdo->prepare("
 $stmtDocuments->execute([':client_id' => $clientId]);
 $documents = $stmtDocuments->fetch();
 
-// Traitement de la mise à jour
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. Récupérer les anciennes données pour les insérer dans `clients_history`
+// Récupérer les notes associées au client
+$stmtNotes = $pdo->prepare("
+    SELECT id, note, created_at 
+    FROM client_notes 
+    WHERE client_id = :client_id 
+    ORDER BY created_at DESC
+");
+$stmtNotes->execute([':client_id' => $clientId]);
+$notes = $stmtNotes->fetchAll();
+
+// Suppression d'une note
+if (isset($_POST['delete_note_id']) && is_numeric($_POST['delete_note_id'])) {
+    $noteId = (int)$_POST['delete_note_id'];
+
+    $stmt = $pdo->prepare("DELETE FROM client_notes WHERE id = :id");
+    $stmt->execute([':id' => $noteId]);
+
+    // Réponse JSON pour suppression réussie
+    echo json_encode(['success' => true, 'message' => 'Note supprimée avec succès.']);
+    exit;
+}
+
+// Ajout d'une nouvelle note
+if (!empty($_POST['new_note_text'])) {
+    $noteText = trim($_POST['new_note_text']);
+    if (!empty($noteText)) {
+        $stmt = $pdo->prepare("
+            INSERT INTO client_notes (client_id, note, created_at) 
+            VALUES (:client_id, :note, NOW())
+        ");
+        $stmt->execute([
+            ':client_id' => $clientId,
+            ':note' => $noteText,
+        ]);
+
+        $newNoteId = $pdo->lastInsertId();
+        echo json_encode([
+            'success' => true,
+            'note_id' => $newNoteId,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Le contenu de la note est vide.']);
+    }
+    exit;
+}
+
+// Traitement de la mise à jour (autres champs)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && empty($_POST['new_note_text'])) {
+    // Ajout des données dans `clients_history`
     $stmt = $pdo->prepare("
         INSERT INTO clients_history 
         (client_id, entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, iban, swift, bankName, interest, referer, regdate, modified_at) 
@@ -48,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->execute([':id' => $clientId]);
 
-    // 2. Mettre à jour les nouvelles données dans la table `clients`
+    // Mise à jour des informations du client
     $stmt = $pdo->prepare("
         UPDATE clients SET 
             entity = :entity,
@@ -95,14 +142,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ':bankName' => $_POST['bankName'],
         ':interest' => $_POST['interest'],
         ':referer' => $_POST['referer'],
-        ':regdate' => $client['regdate'], // Garder la même date d'enregistrement
+        ':regdate' => $client['regdate'],
         ':id' => $clientId,
     ]);
 
-    // Ajouter un message flash à la session
-    $_SESSION['flash_message'] = "Le client a été modifié avec succès";
+    // Message flash pour succès
+    $_SESSION['flash_message'] = "Le client a été mis à jour avec succès.";
 
-    // Redirection pour recharger la page avec les nouvelles données
+    // Redirection
     header("Location: /Metalcash_clients_add/client/show/$clientId");
     exit;
 }
@@ -143,6 +190,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </select>
             </div>
 
+            <div class="notes-section">
+                <h2>Notes du client</h2>
+                <table class="notes-table">
+                    <thead>
+                        <tr>
+                            <th class="table-header">Date</th>
+                            <th class="table-header">Note</th>
+                            <th class="table-header"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="notes-list">
+                        <?php if (!empty($notes)): ?>
+                            <?php foreach ($notes as $note): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($note['created_at']) ?></td>
+                                    <td><?= htmlspecialchars($note['note']) ?></td>
+                                    <td>
+                                        <!-- Bouton pour supprimer une note -->
+                                        <button
+                                            type="button"
+                                            class="delete-note"
+                                            data-note-id="<?= htmlspecialchars($note['id'] ?? '') ?>">
+                                            Supprimer
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr id="no-notes-row">
+                                <td colspan="3">Aucune note disponible pour ce client.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+
+            <div class="form-group notes-container">
+                <label for="new-note">Ajouter une note</label>
+                <input
+                    id="new-note"
+                    class="note-input"
+                    placeholder="Écrivez une nouvelle note..." />
+                <button
+                    type="button"
+                    id="add-note-button"
+                    class="add-note-button">
+                    Enregistrer la note
+                </button>
+            </div>
+
+
+
             <h2>Informations sur le document d'identité</h2>
             <div class="form-group">
                 <label for="docType">Type de document *</label>
@@ -156,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-row">
                 <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docNumber">Numéro de document *</label>
-                    <input type="text" id="docNumber" name="docNumber" value="<?= htmlspecialchars($client['docNumber']) ?>">
+                    <input type="text" id="docNumber" name="docNumber" value="<?= htmlspecialchars($client['docNumber']) ?>" placeholder="exemple: 123-1234567-12">
                 </div>
                 <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docExp">Date d'expiration *</label>
@@ -190,11 +290,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-row">
                 <div class="form-group">
                     <label for="familyName">Nom *</label>
-                    <input type="text" id="familyName" name="familyName" value="<?= htmlspecialchars($client['familyName']) ?>">
+                    <input type="text" id="familyName" name="familyName" value="<?= htmlspecialchars($client['familyName']) ?>" placeholder="exemple: Doe">
                 </div>
                 <div class="form-group">
                     <label for="firstName">Prénom *</label>
-                    <input type="text" id="firstName" name="firstName" value="<?= htmlspecialchars($client['firstName']) ?>">
+                    <input type="text" id="firstName" name="firstName" value="<?= htmlspecialchars($client['firstName']) ?>" placeholder="exemple: John">
                 </div>
             </div>
             <div class="form-group">
@@ -203,26 +303,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="form-group">
                 <label for="address">Adresse *</label>
-                <input type="text" id="address" name="address" value="<?= htmlspecialchars($client['address']) ?>">
+                <input type="text" id="address" name="address" value="<?= htmlspecialchars($client['address']) ?>" placeholder="exemple: Avenue du marché 12">
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="locality">Localité *</label>
-                    <input type="text" id="locality" name="locality" value="<?= htmlspecialchars($client['locality']) ?>">
+                    <input type="text" id="locality" name="locality" value="<?= htmlspecialchars($client['locality']) ?>" placeholder="exemple: Liège">
                 </div>
                 <div class="form-group">
                     <label for="country">Pays *</label>
-                    <input type="text" id="country" name="country" value="<?= htmlspecialchars($client['country']) ?>">
+                    <input type="text" id="country" name="country" value="<?= htmlspecialchars($client['country']) ?>" placeholder="exemple: Belgique">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="email">E-mail</label>
-                    <input type="email" id="email" name="email" value="<?= htmlspecialchars($client['email']) ?>">
+                    <input type="email" id="email" name="email" value="<?= htmlspecialchars($client['email']) ?>" placeholder="exemple: exemple@exemple.be">
                 </div>
                 <div class="form-group">
                     <label for="phone">Téléphone</label>
-                    <input type="text" id="phone" name="phone" value="<?= htmlspecialchars($client['phone']) ?>">
+                    <input type="text" id="phone" name="phone" value="<?= htmlspecialchars($client['phone']) ?>" placeholder="exemple: +32 491 24 86 57">
                 </div>
             </div>
 
@@ -230,16 +330,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-row">
                 <div class="form-group">
                     <label for="iban">IBAN</label>
-                    <input type="text" id="iban" name="iban" value="<?= htmlspecialchars($client['iban']) ?>">
+                    <input type="text" id="iban" name="iban" value="<?= htmlspecialchars($client['iban']) ?>" placeholder="exemple: BE71096123456769">
                 </div>
                 <div class="form-group">
                     <label for="swift">SWIFT</label>
-                    <input type="text" id="swift" name="swift" value="<?= htmlspecialchars($client['swift']) ?>">
+                    <input type="text" id="swift" name="swift" value="<?= htmlspecialchars($client['swift']) ?>" placeholder="exemple: KRED BE BB">
                 </div>
             </div>
             <div class="form-group">
                 <label for="bankName">Nom de la banque</label>
-                <input type="text" id="bankName" name="bankName" value="<?= htmlspecialchars($client['bankName']) ?>">
+                <input type="text" id="bankName" name="bankName" value="<?= htmlspecialchars($client['bankName']) ?>" placeholder="exemple: KBC Bank">
             </div>
 
             <div class="form-row">
@@ -284,7 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- SCRIPTS -->
     <script src="../../js/formValidationAdd.js" defer></script>
     <script src="../../js/animationInputsAdd.js" defer></script>
-    <script src="../../js/addClientNote.js" defer></script>
+    <script src="../../js/addClientNoteShow.js" defer></script>
     <script src="../../js/documentUploadShow.js" defer></script>
     <script src="../../js/openIbanApi.js" defer></script>
     <script src="../../js/GooglePlaceAPI.js" defer></script>
