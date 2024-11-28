@@ -11,6 +11,8 @@ try {
     die("Erreur de connexion à la base de données : " . $e->getMessage());
 }
 
+$errors = []; // Tableau pour stocker les erreurs
+
 // Récupération de l'ID du client depuis l'URL
 $clientId = $_GET['id'] ?? null;
 
@@ -95,8 +97,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
     ");
     $stmt->execute([':id' => $clientId]);
 
+
+    $docNumber = trim($_POST['docNumber']);
+    $familyName = trim($_POST['familyName']);
+    $firstName = trim($_POST['firstName']);
+    $fullName = $familyName . ' ' . $firstName;
+
+    // Vérification si `docNumber` existe déjà pour un autre client
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM clients WHERE docNumber = :docNumber AND ID != :id");
+    $stmt->execute([':docNumber' => $docNumber, ':id' => $clientId]);
+    if ($stmt->fetchColumn() > 0) {
+        $errors['docNumber'] = "Le numéro de document existe déjà pour un autre client.";
+    }
+
+    // Vérification si `fullName` existe déjà pour un autre client
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM clients WHERE fullName = :fullName AND ID != :id");
+    $stmt->execute([':fullName' => $fullName, ':id' => $clientId]);
+    if ($stmt->fetchColumn() > 0) {
+        $errors['fullName'] = "Le nom complet existe déjà pour un autre client.";
+    }
+
     // Mise à jour des informations du client
-    $stmt = $pdo->prepare("
+    if (empty($errors)) {
+        $stmt = $pdo->prepare("
         UPDATE clients SET 
             entity = :entity,
             docType = :docType,
@@ -121,37 +144,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
             regdate = :regdate
         WHERE ID = :id
     ");
-    $stmt->execute([
-        ':entity' => $_POST['entity'],
-        ':docType' => $_POST['docType'],
-        ':docNumber' => $_POST['docNumber'],
-        ':docExp' => $_POST['docExp'],
-        ':fullName' => $_POST['familyName'] . ' ' . $_POST['firstName'],
-        ':familyName' => $_POST['familyName'],
-        ':firstName' => $_POST['firstName'],
-        ':birthDate' => $_POST['birthDate'],
-        ':address' => $_POST['address'],
-        ':locality' => $_POST['locality'],
-        ':country' => $_POST['country'],
-        ':email' => $_POST['email'],
-        ':phone' => $_POST['phone'],
-        ':company' => $_POST['company'],
-        ':companyvat' => $_POST['companyvat'],
-        ':iban' => $_POST['iban'],
-        ':swift' => $_POST['swift'],
-        ':bankName' => $_POST['bankName'],
-        ':interest' => $_POST['interest'],
-        ':referer' => $_POST['referer'],
-        ':regdate' => $client['regdate'],
-        ':id' => $clientId,
-    ]);
+        $stmt->execute([
+            ':entity' => $_POST['entity'],
+            ':docType' => $_POST['docType'],
+            ':docNumber' => $_POST['docNumber'],
+            ':docExp' => $_POST['docExp'],
+            ':fullName' => $_POST['familyName'] . ' ' . $_POST['firstName'],
+            ':familyName' => $_POST['familyName'],
+            ':firstName' => $_POST['firstName'],
+            ':birthDate' => $_POST['birthDate'],
+            ':address' => $_POST['address'],
+            ':locality' => $_POST['locality'],
+            ':country' => $_POST['country'],
+            ':email' => $_POST['email'],
+            ':phone' => $_POST['phone'],
+            ':company' => $_POST['company'],
+            ':companyvat' => $_POST['companyvat'],
+            ':iban' => $_POST['iban'],
+            ':swift' => $_POST['swift'],
+            ':bankName' => $_POST['bankName'],
+            ':interest' => $_POST['interest'],
+            ':referer' => $_POST['referer'],
+            ':regdate' => $client['regdate'],
+            ':id' => $clientId,
+        ]);
 
-    // Message flash pour succès
-    $_SESSION['flash_message'] = "Le client a été mis à jour avec succès.";
+        // Message flash pour succès
+        $_SESSION['flash_message'] = "Le client a été mis à jour avec succès.";
 
-    // Redirection
-    header("Location: /Metalcash_clients_add/client/show/$clientId");
-    exit;
+        // Redirection
+        header("Location: /Metalcash_clients_add/client/show/$clientId");
+        exit;
+    }
 }
 ?>
 
@@ -257,6 +281,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
                 <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docNumber">Numéro de document *</label>
                     <input type="text" id="docNumber" name="docNumber" value="<?= htmlspecialchars($client['docNumber']) ?>" placeholder="exemple: 123-1234567-12">
+                    <?php if (!empty($errors['docNumber'])): ?>
+                        <span class="error"><?= htmlspecialchars($errors['docNumber']) ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docExp">Date d'expiration *</label>
@@ -291,10 +318,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
                 <div class="form-group">
                     <label for="familyName">Nom *</label>
                     <input type="text" id="familyName" name="familyName" value="<?= htmlspecialchars($client['familyName']) ?>" placeholder="exemple: Doe">
+                    <?php if (!empty($errors['fullName'])): ?>
+                        <span class="error"><?= htmlspecialchars($errors['fullName']) ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="form-group">
                     <label for="firstName">Prénom *</label>
                     <input type="text" id="firstName" name="firstName" value="<?= htmlspecialchars($client['firstName']) ?>" placeholder="exemple: John">
+                    <?php if (!empty($errors['fullName'])): ?>
+                        <span class="error"><?= htmlspecialchars($errors['fullName']) ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="form-group">

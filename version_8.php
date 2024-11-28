@@ -5,6 +5,7 @@ session_start();
 
 // Initialisation des variables pour sécurité htmlspecialchars
 $entity = $docType = $docNumber = $docExp = $familyName = $firstName = $birthDate = $address = $locality = $country = $email = $phone = $company = $companyvat = $interest = $referer = $iban = $swift = $bankName = $note = '';
+$errors = []; // Tableau pour stocker les erreurs
 
 // Honeypot pour détecter les bots
 if (!empty($_POST['fake_field'])) {
@@ -27,6 +28,7 @@ try {
 }
 
 $processed = false;
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     // Vérification CSRF
@@ -55,118 +57,162 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_client'])) {
     $bankName = !empty(trim($_POST['bankName'])) ? ucfirst(trim($_POST['bankName'])) : null;
     $interest = $_POST['interest'] ?? null;
     $referer = $_POST['referer'] ?? null;
-    $note = !empty(trim($_POST['note'])) ? trim($_POST['note']) : null;
+    // $note = !empty(trim($_POST['note'])) ? trim($_POST['note']) : null;
     $regdate = date('Y-m-d');
 
 
-    // Insertion du client dans la table clients
-    $stmt = $pdo->prepare("
-        INSERT INTO clients 
-        (entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, interest, referer, regdate, iban, swift, bankName) 
-        VALUES 
-        (:entity, :docType, :docNumber, :docExp, :fullName, :familyName, :firstName, :birthDate, :address, :locality, :country, :email, :phone, :company, :companyvat, :interest, :referer, :regdate, :iban, :swift, :bankName)
-    ");
-    $stmt->execute([
-        ':entity' => $entity,
-        ':docType' => $docType,
-        ':docNumber' => $docNumber,
-        ':docExp' => $docExp,
-        ':fullName' => $fullName,
-        ':familyName' => $familyName,
-        ':firstName' => $firstName,
-        ':birthDate' => $birthDate,
-        ':address' => $address,
-        ':locality' => $locality,
-        ':country' => $country,
-        ':email' => $email,
-        ':phone' => $phone,
-        ':company' => $company,
-        ':companyvat' => $companyvat,
-        ':interest' => $interest,
-        ':referer' => $referer,
-        ':regdate' => $regdate,
-        ':iban' => $iban,
-        ':swift' => $swift,
-        ':bankName' => $bankName,
-    ]);
+    // Vérification si `ID` existe déjà
+    if (!empty($_POST['id'])) {
+        $clientId = trim($_POST['id']);
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM clients WHERE id = :id");
+        $stmt->execute([':id' => $clientId]);
+        if ($stmt->fetchColumn() > 0) {
+            $errors['id'] = "Cet ID client existe déjà.";
+        }
+    }
 
-    // Récupération de l'ID du client inséré
-    $clientId = $pdo->lastInsertId();
+    // Vérification si `docNumber` existe déjà
+    if ($docNumber) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM clients WHERE docNumber = :docNumber");
+        $stmt->execute([':docNumber' => $docNumber]);
+        if ($stmt->fetchColumn() > 0) {
+            $errors['docNumber'] = "Le numéro de document existe déjà.";
+        }
+    }
 
-    // Insertion de la note dans la table `client_notes`
-    if (!empty($_POST['notes'])) {
-        $notes = json_decode($_POST['notes'], true); // Récupérer les notes envoyées en JSON
-        foreach ($notes as $note) {
+    // Vérification si `fullName` existe déjà
+    if ($fullName) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM clients WHERE fullName = :fullName");
+        $stmt->execute([':fullName' => $fullName]);
+        if ($stmt->fetchColumn() > 0) {
+            $errors['fullName'] = "Le nom complet est déjà existant dans nos enregistrements.";
+        }
+    }
+
+
+
+    if (!empty($errors)) {
+        // Si des erreurs sont détectées, le formulaire est affiché avec les erreurs, et le reste du traitement est ignoré
+    } else {
+        // Insertion du client dans la table clients
+        $stmt = $pdo->prepare("
+            INSERT INTO clients 
+            (entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, interest, referer, regdate, iban, swift, bankName) 
+            VALUES 
+            (:entity, :docType, :docNumber, :docExp, :fullName, :familyName, :firstName, :birthDate, :address, :locality, :country, :email, :phone, :company, :companyvat, :interest, :referer, :regdate, :iban, :swift, :bankName)
+        ");
+        $stmt->execute([
+            ':entity' => $entity,
+            ':docType' => $docType,
+            ':docNumber' => $docNumber,
+            ':docExp' => $docExp,
+            ':fullName' => $fullName,
+            ':familyName' => $familyName,
+            ':firstName' => $firstName,
+            ':birthDate' => $birthDate,
+            ':address' => $address,
+            ':locality' => $locality,
+            ':country' => $country,
+            ':email' => $email,
+            ':phone' => $phone,
+            ':company' => $company,
+            ':companyvat' => $companyvat,
+            ':interest' => $interest,
+            ':referer' => $referer,
+            ':regdate' => $regdate,
+            ':iban' => $iban,
+            ':swift' => $swift,
+            ':bankName' => $bankName,
+        ]);
+
+        // Récupération de l'ID du client inséré
+        $clientId = $pdo->lastInsertId();
+
+        // Insertion des notes dans la table `client_notes`
+        // Insertion des notes dans la table `client_notes`
+        if (!empty($_POST['notes'])) {
+            $notes = json_decode($_POST['notes'], true); // Décoder le JSON des notes
+
+            if (is_array($notes)) {
+                foreach ($notes as $noteItem) {
+                    // Vérifie si la clé 'text' existe dans le tableau
+                    if (!empty($noteItem['text'])) {
+                        $stmt = $pdo->prepare("
+                    INSERT INTO client_notes (client_id, note) 
+                    VALUES (:client_id, :note)
+                ");
+                        $stmt->execute([
+                            ':client_id' => $clientId,
+                            ':note' => $noteItem['text'], // Utiliser la clé 'text'
+                        ]);
+                    }
+                }
+            } else {
+                // Ajouter une erreur si les notes ne sont pas un tableau valide
+                $errors['notes'] = "Les données des notes sont invalides.";
+            }
+        }
+
+
+        // Gestion de l'upload des documents (recto et verso)
+        $allowedExtensions = ['jpg', 'jpeg', 'png'];
+        $uploadDir = __DIR__ . '/uploads_documents/client/images/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true); // Crée le dossier avec les permissions nécessaires
+        }
+
+        $recto = $_FILES['document_recto'] ?? null;
+        $verso = $_FILES['document_verso'] ?? null;
+        $filePaths = [];
+
+        foreach (['recto' => $recto, 'verso' => $verso] as $key => $file) {
+            if ($file && $file['error'] === UPLOAD_ERR_OK) {
+                $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+                if (!in_array($fileExt, $allowedExtensions)) {
+                    die("Seuls les fichiers JPG, JPEG et PNG sont autorisés pour le $key.");
+                }
+
+                // Générer un nom sécurisé
+                $secureName = $clientId . '-' . hash('sha256', uniqid() . $file['name']) . '.' . $fileExt;
+
+                // Redimensionner l'image
+                $destinationPath = $uploadDir . $secureName;
+                if (!resizeImage($file['tmp_name'], $destinationPath)) {
+                    die("Erreur lors du redimensionnement de l'image $key.");
+                }
+
+                // Vérifiez si le fichier a bien été stocké
+                if (!file_exists($destinationPath)) {
+                    die("Le fichier $key n'a pas été correctement téléversé.");
+                }
+
+                $filePaths[$key] = $secureName; // Ajouter le nom du fichier sécurisé
+            }
+        }
+
+        // Si des fichiers ont été téléversés, insérer les chemins dans la base de données
+        if (!empty($filePaths)) {
             $stmt = $pdo->prepare("
-                INSERT INTO client_notes (client_id, note) 
-                VALUES (:client_id, :note)
+                INSERT INTO client_documents (client_id, document_recto, document_verso) 
+                VALUES (:client_id, :document_recto, :document_verso)
             ");
             $stmt->execute([
                 ':client_id' => $clientId,
-                ':note' => $note['text'],
+                ':document_recto' => $filePaths['recto'] ?? null,
+                ':document_verso' => $filePaths['verso'] ?? null,
             ]);
         }
+
+        $processed = true;
+
+        // Ajouter un message flash à la session
+        $_SESSION['flash_message'] = "Le client a été ajouté avec succès";
+
+        // Redirection pour éviter une double soumission
+        header("Location: " . BASE_URL . "/client/show/$clientId");
+        exit;
     }
-
-    // Gestion de l'upload des documents (recto et verso)
-    $allowedExtensions = ['jpg', 'jpeg', 'png'];
-    $uploadDir = __DIR__ . '/uploads_documents/client/images/';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true); // Crée le dossier avec les permissions nécessaires
-    }
-    $recto = $_FILES['document_recto'] ?? null;
-    $verso = $_FILES['document_verso'] ?? null;
-
-    $filePaths = [];
-
-    foreach (['recto' => $recto, 'verso' => $verso] as $key => $file) {
-        if ($file && $file['error'] === UPLOAD_ERR_OK) {
-            $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-            if (!in_array($fileExt, $allowedExtensions)) {
-                die("Seuls les fichiers JPG, JPEG et PNG sont autorisés pour le $key.");
-            }
-
-            // Générer un nom sécurisé
-            $secureName = $clientId . '-' . hash('sha256', uniqid() . $file['name']) . '.' . $fileExt;
-
-            // Redimensionner l'image
-            $destinationPath = $uploadDir . $secureName;
-            if (!resizeImage($file['tmp_name'], $destinationPath)) {
-                die("Erreur lors du redimensionnement de l'image $key.");
-            }
-
-            // Vérifiez si le fichier a bien été stocké
-            if (!file_exists($destinationPath)) {
-                die("Le fichier $key n'a pas été correctement téléversé.");
-            }
-
-            $filePaths[$key] = $secureName; // Ajouter le nom du fichier sécurisé
-        }
-    }
-
-
-    // Si des fichiers ont été téléversés, insérer les chemins dans la base de données
-    if (!empty($filePaths)) {
-        $stmt = $pdo->prepare("
-        INSERT INTO client_documents (client_id, document_recto, document_verso) 
-        VALUES (:client_id, :document_recto, :document_verso)
-    ");
-        $stmt->execute([
-            ':client_id' => $clientId,
-            ':document_recto' => $filePaths['recto'] ?? null,
-            ':document_verso' => $filePaths['verso'] ?? null,
-        ]);
-    }
-
-    $processed = true;
-
-    // Ajouter un message flash à la session
-    $_SESSION['flash_message'] = "Le client a été ajouté avec succès";
-
-    // Redirection pour éviter une double soumission
-    header("Location: " . BASE_URL . "/client/show/$clientId");
-    exit;
 }
 
 // Fonction pour redimensionner les images
@@ -250,6 +296,9 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
 
     <div class="form-container">
         <h1>Ajouter un nouveau client</h1>
+        <?php if (!empty($errors['id'])): ?>
+            <span class="error"><?= htmlspecialchars($errors['id']) ?></span>
+        <?php endif; ?>
         <form method="POST" enctype="multipart/form-data" class="form" id="clientForm" style="margin-top: 60px;"">
             <input type=" text" name="fake_field" style="display:none;" tabindex="-1">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
@@ -278,11 +327,17 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
                 </table>
             </div>
 
+            <!-- Affichage de l'erreur pour les notes -->
+            <?php if (!empty($errors['notes'])): ?>
+                <div class="error"><?= htmlspecialchars($errors['notes']) ?></div>
+            <?php endif; ?>
+
             <div class="form-group notes-container">
                 <label for="new-note">Ajouter une note</label>
                 <input id="new-note" class="note-input" placeholder="Écrivez une nouvelle note..."></input>
                 <button type="button" id="add-note-button" class="add-note-button">Enregistrer la note</button>
             </div>
+
 
             <h2>Informations sur le document d'identité</h2>
             <div class="form-group">
@@ -298,6 +353,9 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
                 <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docNumber">Numéro de document *</label>
                     <input type="text" id="docNumber" name="docNumber" placeholder="exemple: 123-1234567-12" value="<?= htmlspecialchars($docNumber, ENT_QUOTES, 'UTF-8') ?>">
+                    <?php if (!empty($errors['docNumber'])): ?>
+                        <span class="error"><?= htmlspecialchars($errors['docNumber']) ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="form-group" style="margin-bottom: 0 !important;">
                     <label for="docExp">Date d'expiration *</label>
@@ -326,11 +384,17 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
             <div class="form-row">
                 <div class="form-group">
                     <label for="familyName">Nom *</label>
-                    <input type="text" id="familyName" name="familyName" placeholder="exemple: John" value="<?= htmlspecialchars($familyName, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="familyName" name="familyName" placeholder="exemple: Doe" value="<?= htmlspecialchars($familyName, ENT_QUOTES, 'UTF-8') ?>">
+                    <?php if (!empty($errors['fullName'])): ?>
+                        <span class="error"><?= htmlspecialchars($errors['fullName']) ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="form-group">
                     <label for="firstName">Prénom *</label>
-                    <input type="text" id="firstName" name="firstName" placeholder="exemple: Doe" value="<?= htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="text" id="firstName" name="firstName" placeholder="exemple: John" value="<?= htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') ?>">
+                    <?php if (!empty($errors['fullName'])): ?>
+                        <span class="error"><?= htmlspecialchars($errors['fullName']) ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="form-group">
