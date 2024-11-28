@@ -87,17 +87,6 @@ if (!empty($_POST['new_note_text'])) {
 
 // Traitement de la mise à jour (autres champs)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && empty($_POST['new_note_text'])) {
-    // Ajout des données dans `clients_history`
-    $stmt = $pdo->prepare("
-        INSERT INTO clients_history 
-        (client_id, entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, iban, swift, bankName, interest, referer, regdate, modified_at) 
-        SELECT ID, entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, iban, swift, bankName, interest, referer, regdate, NOW() 
-        FROM clients 
-        WHERE ID = :id
-    ");
-    $stmt->execute([':id' => $clientId]);
-
-
     $docNumber = trim($_POST['docNumber']);
     $familyName = trim($_POST['familyName']);
     $firstName = trim($_POST['firstName']);
@@ -117,54 +106,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
         $errors['fullName'] = "Le nom complet existe déjà pour un autre client.";
     }
 
-    // Mise à jour des informations du client
+    // Ajout des données dans `clients_history`
     if (empty($errors)) {
         $stmt = $pdo->prepare("
-        UPDATE clients SET 
-            entity = :entity,
-            docType = :docType,
-            docNumber = :docNumber,
-            docExp = :docExp,
-            fullName = :fullName,
-            familyName = :familyName,
-            firstName = :firstName,
-            birthDate = :birthDate,
-            address = :address,
-            locality = :locality,
-            country = :country,
-            email = :email,
-            phone = :phone,
-            company = :company,
-            companyvat = :companyvat,
-            iban = :iban,
-            swift = :swift,
-            bankName = :bankName,
-            interest = :interest,
-            referer = :referer,
-            regdate = :regdate
-        WHERE ID = :id
-    ");
+            INSERT INTO clients_history 
+            (client_id, entity, docType, docNumber, docExp, fullName, familyName, firstName, birthDate, address, locality, country, email, phone, company, companyvat, iban, swift, bankName, interest, referer, regdate, modified_at) 
+            SELECT 
+                ID, 
+                entity, 
+                docType, 
+                docNumber, 
+                docExp, 
+                fullName, 
+                familyName, 
+                firstName, 
+                birthDate, 
+                address, 
+                locality, 
+                country, 
+                email, 
+                phone, 
+                company, 
+                companyvat, 
+                iban, 
+                swift, 
+                bankName, 
+                interest, 
+                referer, 
+                regdate, 
+                NOW() 
+            FROM clients 
+            WHERE ID = :id
+        ");
+        $stmt->execute([':id' => $clientId]);
+
+        // Mise à jour des informations du client
+        $stmt = $pdo->prepare("
+            UPDATE clients SET 
+                entity = :entity,
+                docType = :docType,
+                docNumber = :docNumber,
+                docExp = :docExp,
+                fullName = :fullName,
+                familyName = :familyName,
+                firstName = :firstName,
+                birthDate = :birthDate,
+                address = :address,
+                locality = :locality,
+                country = :country,
+                email = :email,
+                phone = :phone,
+                company = :company,
+                companyvat = :companyvat,
+                iban = :iban,
+                swift = :swift,
+                bankName = :bankName,
+                interest = :interest,
+                referer = :referer,
+                regdate = :regdate
+            WHERE ID = :id
+        ");
         $stmt->execute([
-            ':entity' => $_POST['entity'],
-            ':docType' => $_POST['docType'],
-            ':docNumber' => $_POST['docNumber'],
-            ':docExp' => $_POST['docExp'],
-            ':fullName' => $_POST['familyName'] . ' ' . $_POST['firstName'],
-            ':familyName' => $_POST['familyName'],
-            ':firstName' => $_POST['firstName'],
-            ':birthDate' => $_POST['birthDate'],
-            ':address' => $_POST['address'],
-            ':locality' => $_POST['locality'],
-            ':country' => $_POST['country'],
-            ':email' => $_POST['email'],
-            ':phone' => $_POST['phone'],
-            ':company' => $_POST['company'],
-            ':companyvat' => $_POST['companyvat'],
-            ':iban' => $_POST['iban'],
-            ':swift' => $_POST['swift'],
-            ':bankName' => $_POST['bankName'],
-            ':interest' => $_POST['interest'],
-            ':referer' => $_POST['referer'],
+            ':entity' => $_POST['entity'] ?? $client['entity'],
+            ':docType' => $_POST['docType'] ?? $client['docType'],
+            ':docNumber' => $_POST['docNumber'] ?? $client['docNumber'],
+            ':docExp' => $_POST['docExp'] ?? $client['docExp'],
+            ':fullName' => $fullName ?? $client['fullName'],
+            ':familyName' => $_POST['familyName'] ?? $client['familyName'],
+            ':firstName' => $_POST['firstName'] ?? $client['firstName'],
+            ':birthDate' => $_POST['birthDate'] ?? $client['birthDate'],
+            ':address' => $_POST['address'] ?? $client['address'],
+            ':locality' => $_POST['locality'] ?? $client['locality'],
+            ':country' => $_POST['country'] ?? $client['country'],
+            ':email' => $_POST['email'] ?? $client['email'],
+            ':phone' => $_POST['phone'] ?? $client['phone'],
+            ':company' => $_POST['company'] ?? $client['company'],
+            ':companyvat' => $_POST['companyvat'] ?? $client['companyvat'],
+            ':iban' => $_POST['iban'] ?? $client['iban'],
+            ':swift' => $_POST['swift'] ?? $client['swift'],
+            ':bankName' => $_POST['bankName'] ?? $client['bankName'],
+            ':interest' => $_POST['interest'] ?? $client['interest'],
+            ':referer' => $_POST['referer'] ?? $client['referer'],
             ':regdate' => $client['regdate'],
             ':id' => $clientId,
         ]);
@@ -248,21 +270,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
                         <?php endif; ?>
                     </tbody>
                 </table>
-            </div>
 
-
-            <div class="form-group notes-container">
-                <label for="new-note">Ajouter une note</label>
-                <input
-                    id="new-note"
-                    class="note-input"
-                    placeholder="Écrivez une nouvelle note..." />
-                <button
-                    type="button"
-                    id="add-note-button"
-                    class="add-note-button">
-                    Enregistrer la note
-                </button>
+                <div class="form-group notes-container">
+                    <label for="new-note">Ajouter une note</label>
+                    <input
+                        id="new-note"
+                        class="note-input"
+                        placeholder="Écrivez une nouvelle note..." />
+                    <button
+                        type="button"
+                        id="add-note-button"
+                        class="add-note-button">
+                        Enregistrer la note
+                    </button>
+                </div>
             </div>
 
 
