@@ -370,7 +370,9 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
                 <label for="document_verso">Téléverser document d'identité - Verso</label>
                 <input type="file" id="document_verso" name="document_verso" accept="image/*">
 
-                <div id="previewBoth" class="preview-both"></div>
+                <div id="previewBoth" class="preview-both">
+                    <!-- Les images téléversées seront affichées ici -->
+                </div>
             </div>
 
             <!-- Modal pour afficher l'image en grand -->
@@ -378,6 +380,7 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
                 <span class="close">&times;</span>
                 <img class="modal-content" id="modalImage">
             </div>
+
 
 
             <h2>Informations générales</h2>
@@ -479,6 +482,13 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
         </form>
         <div id="globalError">Merci de corriger les erreurs avant de continuer.</div>
     </div>
+
+    <script>
+        // Variables PHP accessibles en JavaScript
+        const clientId = <?= isset($clientId) ? json_encode($clientId) : 'null' ?>;
+        const csrfToken = '<?= $_SESSION['csrf_token'] ?? '' ?>';
+    </script>
+
 
     <script src="./js/formValidationAdd.js" defer></script>
     <script src="./js/animationInputsAdd.js" defer></script>

@@ -1,6 +1,11 @@
 <?php
 session_start();
 
+// Génération du token CSRF si nécessaire
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Connexion à la base de données
 try {
     $pdo = new PDO("mysql:host=localhost;dbname=metalcash_clients_add", "root", "", [
@@ -85,6 +90,7 @@ if (!empty($_POST['new_note_text'])) {
     exit;
 }
 
+
 // Traitement de la mise à jour (autres champs)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && empty($_POST['new_note_text'])) {
     $docNumber = trim($_POST['docNumber']);
@@ -106,7 +112,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
         $errors['fullName'] = "Le nom complet existe déjà pour un autre client.";
     }
 
-    // Ajout des données dans `clients_history`
+    // Gestion des fichiers téléversés (recto et verso)
+    $allowedExtensions = ['jpg', 'jpeg', 'png'];
+    $rootDir = dirname(__DIR__, 2); // Remonte de deux niveaux depuis 'client/show/' vers la racine
+    $uploadDir = $rootDir . '/uploads_documents/client/images/';
+
+    if (!is_dir($uploadDir)) {
+        if (!mkdir($uploadDir, 0755, true)) {
+            die("Erreur : Impossible de créer le répertoire $uploadDir. Vérifiez les permissions.");
+        }
+    }
+
+    $recto = $_FILES['document_recto'] ?? null;
+    $verso = $_FILES['document_verso'] ?? null;
+    $filePaths = []; // Pour stocker les chemins des fichiers téléversés
+
+    foreach (['recto' => $recto, 'verso' => $verso] as $key => $file) {
+        if ($file && $file['error'] === UPLOAD_ERR_OK) {
+            $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+            if (!in_array($fileExt, ['jpg', 'jpeg', 'png'])) {
+                die("Seuls les fichiers JPG, JPEG et PNG sont autorisés pour $key.");
+            }
+
+            // Générer un nom sécurisé
+            $secureName = $clientId . '-' . hash('sha256', uniqid() . $file['name']) . '.' . $fileExt;
+            $destinationPath = $uploadDir . $secureName;
+
+            // Redimensionner et enregistrer l'image
+            if (!resizeImage($file['tmp_name'], $destinationPath)) {
+                die("Erreur lors du redimensionnement de l'image $key.");
+            }
+
+            // Vérifiez si le fichier a bien été stocké
+            if (file_exists($destinationPath)) {
+                $filePaths[$key] = $secureName;
+            }
+        }
+    }
+
+    // Mise à jour ou insertion dans `client_documents`
+    if (!empty($filePaths)) {
+        // Vérifiez si une entrée existe déjà dans `client_documents`
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM client_documents WHERE client_id = :client_id");
+        $stmt->execute([':client_id' => $clientId]);
+        $exists = $stmt->fetchColumn() > 0;
+
+        if ($exists) {
+            // Mise à jour des documents existants
+            $stmt = $pdo->prepare("
+                UPDATE client_documents
+                SET 
+                    document_recto = COALESCE(:document_recto, document_recto),
+                    document_verso = COALESCE(:document_verso, document_verso)
+                WHERE client_id = :client_id
+            ");
+        } else {
+            // Insertion des nouveaux documents
+            $stmt = $pdo->prepare("
+                INSERT INTO client_documents (client_id, document_recto, document_verso)
+                VALUES (:client_id, :document_recto, :document_verso)
+            ");
+        }
+
+        $stmt->execute([
+            ':client_id' => $clientId,
+            ':document_recto' => $filePaths['recto'] ?? null,
+            ':document_verso' => $filePaths['verso'] ?? null,
+        ]);
+    }
+
+    // Mise à jour des informations du client si pas d'erreurs
     if (empty($errors)) {
         $stmt = $pdo->prepare("
             INSERT INTO clients_history 
@@ -140,7 +216,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
         ");
         $stmt->execute([':id' => $clientId]);
 
-        // Mise à jour des informations du client
         $stmt = $pdo->prepare("
             UPDATE clients SET 
                 entity = :entity,
@@ -199,9 +274,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
         exit;
     }
 }
+
+
+function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
+{
+    $imageInfo = getimagesize($source);
+    if (!$imageInfo) {
+        return false;
+    }
+
+    $width = $imageInfo[0];
+    $height = $imageInfo[1];
+    $mime = $imageInfo['mime'];
+
+    $scale = min($maxWidth / $width, $maxHeight / $height);
+    $newWidth = ceil($width * $scale);
+    $newHeight = ceil($height * $scale);
+
+    switch ($mime) {
+        case 'image/jpeg':
+            $sourceImage = @imagecreatefromjpeg($source);
+            break;
+        case 'image/png':
+            $sourceImage = @imagecreatefrompng($source);
+            break;
+        default:
+            return false;
+    }
+
+    $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+    imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+    $result = imagejpeg($resizedImage, $destination, 85);
+    imagedestroy($sourceImage);
+    imagedestroy($resizedImage);
+
+    return $result;
+}
+
+
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -209,8 +320,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../css/clients_add.css">
     <title>Détails du client</title>
+    <link rel="stylesheet" href="../../css/clients_add.css">
+    <!-- Ajout du CSS pour les boutons de suppression -->
 </head>
 
 <body>
@@ -286,8 +398,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
                 </div>
             </div>
 
-
-
             <h2>Informations sur le document d'identité</h2>
             <div class="form-group">
                 <label for="docType">Type de document *</label>
@@ -313,13 +423,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
             </div>
 
             <div class="form-group">
+                    <label for="document_recto">Téléverser document d'identité - Recto</label>
+                    <input type="file" id="document_recto" name="document_recto" accept="image/*">
+                    
+                    <label for="document_verso">Téléverser document d'identité - Verso</label>
+                    <input type="file" id="document_verso" name="document_verso" accept="image/*">
+
                 <div id="previewBoth" class="preview-both">
                     <?php if (!empty($documents['document_recto'])): ?>
-                        <img class="preview-image" data-position="recto" src="../../uploads_documents/client/images/<?= htmlspecialchars($documents['document_recto']) ?>" alt="Document recto">
+                        <div class="image-container" data-position="recto">
+                            <img class="preview-image" src="../../uploads_documents/client/images/<?= htmlspecialchars($documents['document_recto']) ?>" alt="Document recto">
+                            <button type="button" class="delete-image" data-position="recto">&times;</button>
+                        </div>
                     <?php endif; ?>
 
                     <?php if (!empty($documents['document_verso'])): ?>
-                        <img class="preview-image" data-position="verso" src="../../uploads_documents/client/images/<?= htmlspecialchars($documents['document_verso']) ?>" alt="Document verso">
+                        <div class="image-container" data-position="verso">
+                            <img class="preview-image" src="../../uploads_documents/client/images/<?= htmlspecialchars($documents['document_verso']) ?>" alt="Document verso">
+                            <button type="button" class="delete-image" data-position="verso">&times;</button>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -329,10 +451,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
                 <span class="close">&times;</span>
                 <img class="modal-content" id="modalImage">
             </div>
-
-
-
-
 
             <h2>Informations générales</h2>
             <div class="form-row">
@@ -433,16 +551,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['delete_note_id']) && 
         <div id="globalError">Merci de corriger les erreurs avant de continuer.</div>
     </div>
 
-
-
     <!-- SCRIPTS -->
+    <script>
+        // Variables PHP accessibles en JavaScript
+        const clientId = <?= json_encode($clientId) ?>;
+        const csrfToken = '<?= $_SESSION['csrf_token'] ?? '' ?>';
+    </script>
+
     <script src="../../js/formValidationAdd.js" defer></script>
     <script src="../../js/animationInputsAdd.js" defer></script>
     <script src="../../js/addClientNoteShow.js" defer></script>
     <script src="../../js/documentUploadShow.js" defer></script>
     <script src="../../js/openIbanApi.js" defer></script>
     <script src="../../js/GooglePlaceAPI.js" defer></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSabS4IR4na718B5zm0NB0sPdgg3Da-7E&libraries=places&callback=initAutocomplete" defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=VOTRE_CLE_API&libraries=places&callback=initAutocomplete" defer></script>
 </body>
 
 </html>

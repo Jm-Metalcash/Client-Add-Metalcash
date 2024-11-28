@@ -284,6 +284,45 @@ textarea::placeholder {
     transform: scale(1.1);
 }
 
+.image-container {
+    position: relative;
+    display: inline-block;
+    margin: 10px;
+}
+
+.image-container img {
+    max-width: 100px;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    display: block;
+}
+
+.image-container .delete-image {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(231, 76, 60, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    line-height: 22px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    z-index: 2;
+  }
+
+  .image-container .delete-image:hover {
+    background: rgba(192, 57, 43, 0.8);
+  }
+
+
+
 .modal {
     display: none;
     position: fixed;
