@@ -154,7 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.success) {
               // Supprimer l'élément du DOM
               container.remove();
-              alert("L'image a été supprimée avec succès.");
             } else {
               alert("Erreur : " + data.error);
             }
