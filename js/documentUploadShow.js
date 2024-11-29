@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
       if (clientId) {
         // Envoi de la requête AJAX pour supprimer l'image sur le serveur
-        fetch("/Metalcash_clients_add/client/delete_documents_client.php", {
+        fetch(`${BASE_URL}/client/delete_documents_client.php`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -171,7 +171,6 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (position === "verso") {
           document.getElementById("document_verso").value = "";
         }
-        alert("L'image a été supprimée.");
       }
     }
   });

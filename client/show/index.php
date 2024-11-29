@@ -1,4 +1,6 @@
 <?php
+require '../../config.php';
+
 session_start();
 
 // Génération du token CSRF si nécessaire
@@ -6,15 +8,6 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Connexion à la base de données
-try {
-    $pdo = new PDO("mysql:host=localhost;dbname=metalcash_clients_add", "root", "", [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-} catch (PDOException $e) {
-    die("Erreur de connexion à la base de données : " . $e->getMessage());
-}
 
 $errors = []; // Tableau pour stocker les erreurs
 
@@ -321,8 +314,7 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Détails du client</title>
-    <link rel="stylesheet" href="../../css/clients_add.css">
-    <!-- Ajout du CSS pour les boutons de suppression -->
+    <link rel="stylesheet" href="<?= BASE_URL ?>/css/clients_add.css">
 </head>
 
 <body>
@@ -432,14 +424,14 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
                 <div id="previewBoth" class="preview-both">
                     <?php if (!empty($documents['document_recto'])): ?>
                         <div class="image-container" data-position="recto">
-                            <img class="preview-image" src="../../uploads_documents/client/images/<?= htmlspecialchars($documents['document_recto']) ?>" alt="Document recto">
+                            <img class="preview-image" src="<?= BASE_URL ?>/uploads_documents/client/images/<?= htmlspecialchars($documents['document_recto']) ?>" alt="Document recto">
                             <button type="button" class="delete-image" data-position="recto">&times;</button>
                         </div>
                     <?php endif; ?>
 
                     <?php if (!empty($documents['document_verso'])): ?>
                         <div class="image-container" data-position="verso">
-                            <img class="preview-image" src="../../uploads_documents/client/images/<?= htmlspecialchars($documents['document_verso']) ?>" alt="Document verso">
+                            <img class="preview-image" src="<?= BASE_URL ?>/uploads_documents/client/images/<?= htmlspecialchars($documents['document_verso']) ?>" alt="Document verso">
                             <button type="button" class="delete-image" data-position="verso">&times;</button>
                         </div>
                     <?php endif; ?>
@@ -556,14 +548,15 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
         // Variables PHP accessibles en JavaScript
         const clientId = <?= json_encode($clientId) ?>;
         const csrfToken = '<?= $_SESSION['csrf_token'] ?? '' ?>';
+        const BASE_URL = "<?= htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8') ?>";
     </script>
 
-    <script src="../../js/formValidationAdd.js" defer></script>
-    <script src="../../js/animationInputsAdd.js" defer></script>
-    <script src="../../js/addClientNoteShow.js" defer></script>
-    <script src="../../js/documentUploadShow.js" defer></script>
-    <script src="../../js/openIbanApi.js" defer></script>
-    <script src="../../js/GooglePlaceAPI.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/formValidationAdd.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/animationInputsAdd.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/addClientNoteShow.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/documentUploadShow.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/openIbanApi.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/GooglePlaceAPI.js" defer></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=VOTRE_CLE_API&libraries=places&callback=initAutocomplete" defer></script>
 </body>
 

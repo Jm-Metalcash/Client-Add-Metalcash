@@ -17,15 +17,6 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Connexion sécurisée à la base de données avec PDO
-try {
-    $pdo = new PDO("mysql:host=localhost;dbname=metalcash_clients_add", "root", "", [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-} catch (PDOException $e) {
-    die("Erreur de connexion à la base de données : " . $e->getMessage());
-}
 
 $processed = false;
 
@@ -280,7 +271,7 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./css/clients_add.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/css/clients_add.css">
     <title>Ajouter un client</title>
 </head>
 
@@ -490,12 +481,12 @@ function resizeImage($source, $destination, $maxWidth = 800, $maxHeight = 800)
     </script>
 
 
-    <script src="./js/formValidationAdd.js" defer></script>
-    <script src="./js/animationInputsAdd.js" defer></script>
-    <script src="./js/addClientNote.js" defer></script>
-    <script src="./js/documentUploadShow.js" defer></script>
-    <script src="./js/openIbanApi.js" defer></script>
-    <script src="./js/GooglePlaceAPI.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/formValidationAdd.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/animationInputsAdd.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/addClientNote.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/documentUploadShow.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/openIbanApi.js" defer></script>
+    <script src="<?= BASE_URL ?>/js/GooglePlaceAPI.js" defer></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSabS4IR4na718B5zm0NB0sPdgg3Da-7E&libraries=places&callback=initAutocomplete" defer></script>
 </body>
 

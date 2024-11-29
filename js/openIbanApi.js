@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const banknameInput = document.getElementById("bankName");
 
     ibanInput.addEventListener("blur", () => {
-        const iban = ibanInput.value.trim().replace(/\s+/g, ""); // Supprimer les espaces
+        const iban = ibanInput.value.trim().replace(/\s+/g, "");
         if (iban === "") return;
 
         fetch(`https://openiban.com/validate/${iban}?getBIC=true&validateBankCode=true`)

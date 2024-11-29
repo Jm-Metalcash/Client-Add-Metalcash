@@ -1,4 +1,6 @@
 <?php
+require '../config.php';
+
 session_start();
 
 // Vérification du token CSRF
@@ -27,17 +29,6 @@ if (!$clientId || !$position || !in_array($position, ['recto', 'verso'])) {
     exit;
 }
 
-// Connexion à la base de données
-try {
-    $pdo = new PDO("mysql:host=localhost;dbname=metalcash_clients_add", "root", "", [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Erreur de connexion à la base de données.']);
-    exit;
-}
 
 // Vérification que le client existe
 $stmt = $pdo->prepare("SELECT * FROM clients WHERE ID = :id");
@@ -57,8 +48,8 @@ $stmt->execute([':client_id' => $clientId]);
 $fileName = $stmt->fetchColumn();
 
 if (!$fileName) {
-    http_response_code(404); // Not Found
-    echo json_encode(['success' => false, 'error' => 'Fichier introuvable.']);
+    http_response_code(404);
+    echo json_encode(['success' => false, 'error' => "Veuillez sauvegarder les modifications avant de supprimer l'image."]);
     exit;
 }
 
